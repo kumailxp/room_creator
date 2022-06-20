@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import math
 from colored import fg, bg, attr
 from numpy import array, block
+import pprint
 
 matplotlib.use('TkAgg')
 
@@ -43,33 +44,8 @@ class Coordinate:
                 self.node_map[x + (cols * y)] = (x,y)
                 i += 1
 
-    def get_rgb_array(self):
-        rgb_array = self.coordinate_map
-        color = RGB.White
-        for _,coordinate in self.node_map.items():
-            x, y = coordinate
-            if self.coordinate_map[x][y] == BlockType.Core:
-                color = RGB.Red
-            elif self.coordinate_map[x][y] == BlockType.Green:
-                color = RGB.Green
-            elif self.coordinate_map[x][y] == BlockType.Blue:
-                color = RGB.Blue
-            elif self.coordinate_map[x][y] == BlockType.Empty:
-                color = RGB.White
-            elif self.coordinate_map[x][y] == BlockType.Yellow:
-                color = RGB.Yellow
-            elif self.coordinate_map[x][y] == BlockType.Gray:
-                color = RGB.Gray
-            rgb_array[x][y] = color
-        return rgb_array
-
-
-    def get_empty_rgb(self):
-        rgb_array = self.coordinate_map
-        for _,coordinate in self.node_map.items():
-            x, y = coordinate
-            rgb_array[x][y] = RGB.White
-        return rgb_array
+    def __eq__(self, __o):
+        return self.coordinate_map == __o.coordinate_map
 
     def clean_map(self):
         self.coordinate_map = [ [BlockType.Empty] * self.get_num_rows() for i in range(0, self.get_num_cols())]
@@ -214,7 +190,6 @@ def create_inner_rooms(all_nodes, room_map, core_connected_blocks, area_for_room
         if do_blocks_meet_criteria(room_map_graph, area_of_inner_room, core_connected_blocks):
             room_plan = create_room(all_nodes, room_map, p, area_of_inner_room, source_node)
             all_inner_rooms.append(room_plan)
-
     return all_inner_rooms
 
 
@@ -268,90 +243,92 @@ def get_room_plan(all_nodes, core_connected_blocks, room_map, area_for_room_a, s
     return all_rooms
 
 
-def get_subplot_layout(all_rgb_arrays):
-    array_len = len(all_rgb_arrays)
-    rows = int(math.sqrt(array_len))
-    extra_col = 0 if array_len%rows  == 0 else 1
-    cols = extra_col + int(array_len/rows)
-    return rows, cols
-
-
-def onclick(event):
-    print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
-          ('double' if event.dblclick else 'single', event.button,
-           event.x, event.y, event.xdata, event.ydata))
-
-def enter_figure(event):
-    print('enter_figure', event.canvas.figure)
-    event.canvas.figure.patch.set_facecolor('red')
-    event.canvas.draw()
-
-
-def onpick(event):
-    thisline = event.artist
-    print(thisline)
-    for i in thisline:
-        print(i)
-    #xdata = thisline.get_xdata()
-    #ydata = thisline.get_ydata()
-    #ind = event.ind
-    #points = tuple(zip(xdata[ind], ydata[ind]))
-    print('onpick points:')
-
-
-def plot_on_graph(room_map: Coordinate, source_node, all_rgb_arrays):
-    print("subplot layout:", get_subplot_layout(all_rgb_arrays))
-    print("num layouts", len(all_rgb_arrays))
-    subplot_row, subplot_col = get_subplot_layout(all_rgb_arrays)
-    fig, ax = plt.subplots(subplot_col, subplot_row, picker=True)
-    #fig.canvas.mpl_connect('button_press_event', onclick)
-    #fig.canvas.mpl_connect('figure_enter_event', enter_figure)
-    #fig.canvas.mpl_connect('pick_event', onpick)
-    fig.suptitle(f"Rooms for plotting from source node: {source_node}, core block: {room_map.core_block}")
-
-    id = 0
-    rgb_array_len = len(all_rgb_arrays)
-    for c in range(0, subplot_col):
-        for r in range(0, subplot_row):
-            if id > rgb_array_len -1:
-                ax[c][r].imshow(room_map.get_empty_rgb())
-            else:
-                ax[c][r].imshow(all_rgb_arrays[id])
-            ax[c][r].set_axis_off()
-            id += 1
-    plt.axis('off')
-
-
-def get_paths_from_source(source_node, room_map, room_graph, all_nodes, core_connected_blocks, return_as_rgb = True):
+def get_paths_from_source(source_node, room_map, room_graph, all_nodes, core_connected_blocks):
     cutoff = int(math.ceil((room_map.cols*room_map.rows)/2))
     result = []
     for path in networkx.all_simple_paths(room_graph, source=source_node, target=room_map.core_block_node, cutoff=cutoff):
         current_room_plan: List[Coordinate] = get_room_plan(all_nodes, core_connected_blocks, room_map, path, -1)
         if len(current_room_plan) != 0:
                 for cp in current_room_plan:
-                    if return_as_rgb:
-                        rgb_box = cp.get_rgb_array()
-                        if not rgb_box in result:
-                            result.append(rgb_box)
-                    else:
-                        if not cp in result:
-                            result.append(cp)
+                    if not cp in result:
+                        result.append(cp)
     return result
+
+class GraphPlotter:
+
+    converter_dictionary = {
+        BlockType.Core : RGB.Red,
+        BlockType.Green : RGB.Green,
+        BlockType.Blue : RGB.Blue,
+        BlockType.Empty : RGB.White,
+        BlockType.Yellow : RGB.Yellow,
+        BlockType.Gray : RGB.Gray
+    }
+
+    def __init__(self, room_layout, room_map: Coordinate, source_node):
+        self.room_rgb_layout = [self.get_rgb_array(b) for b in room_layout]
+        self.room_map = room_map
+        self.source_node = source_node
+
+    def plot(self):
+        sub_layout = self.get_subplot_layout()
+        subplot_row, subplot_col = sub_layout
+        fig, ax = plt.subplots(subplot_col, subplot_row, picker=True)
+        fig.suptitle(f"Rooms for plotting from source node: {self.source_node}, core block: {self.room_map.core_block}")
+
+        id = 0
+
+        room_rgb_layout_len = len(self.room_rgb_layout)
+        for c in range(0, subplot_col):
+            for r in range(0, subplot_row):
+                if id > room_rgb_layout_len - 1:
+                    ax[c][r].imshow(self.get_empty_rgb())
+                else:
+                    ax[c][r].imshow(self.room_rgb_layout[id])
+                ax[c][r].set_axis_off()
+                id += 1
+        plt.axis('off')
+
+    def get_subplot_layout(self):
+        array_len = len(self.room_rgb_layout)
+        rows = int(math.sqrt(array_len))
+        extra_col = 0 if array_len%rows  == 0 else 1
+        cols = extra_col + int(array_len/rows)
+        return rows, cols
+
+    def get_rgb_array(self, single_room_layout : Coordinate):
+        rgb_array = single_room_layout.coordinate_map
+        color = RGB.White
+        for _,coordinate in single_room_layout.node_map.items():
+            x, y = coordinate
+            rgb_array[x][y] = GraphPlotter.converter_dictionary[single_room_layout.coordinate_map[x][y]] # color
+        return rgb_array
+
+    def get_empty_rgb(self):
+        rgb_array = self.room_map.coordinate_map
+        for _,coordinate in self.room_map.node_map.items():
+            x, y = coordinate
+            rgb_array[x][y] = RGB.White
+        return rgb_array
 
 
 def main():
-    room_map = Coordinate(3,3, (2,2))
+    room_map = Coordinate(5,5, (2,2))
     room_graph: networkx.Graph = room_map.convert_to_graph()
     all_nodes = room_graph.nodes()
     core_connected_blocks = room_graph[room_map.core_block_node]
-    print("core_connected_blocks", list(core_connected_blocks.keys()))
-    print(room_map.node_map)
+    # print("core_connected_blocks", list(core_connected_blocks.keys()))
+    # print(room_map.node_map)
 
-    all_rgb_arrays = []
-    for source_node in [7,5]:
-        rgb_array = get_paths_from_source(source_node, room_map, room_graph, all_nodes, core_connected_blocks)
-        plot_on_graph(room_map, source_node, rgb_array)
-        all_rgb_arrays.append(rgb_array)
+    all_room_layouts = {}
+    source_nodes = [7,5]
+    for source_node in source_nodes:
+        room_array = get_paths_from_source(source_node, room_map, room_graph, all_nodes, core_connected_blocks)
+        all_room_layouts[source_node] = room_array
+        print(f"layout for {source_node}: ${len(room_array)}")
+
+    for source_node in source_nodes:
+        GraphPlotter(all_room_layouts[source_node], room_map, source_node).plot()
 
     plt.show()
 

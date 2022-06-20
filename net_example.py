@@ -3,6 +3,24 @@
 #import networkx
 
 
+
+class T:
+    def __init__(self, value):
+        self.value = value
+
+    def __eq__(self, __o) -> bool:
+        if isinstance(__o, int):
+            return self.value == __o
+        else:
+            return self.value == __o.value
+
+
+l = [T(1), T(2), T(3)]
+
+print(1 if 4 in l else 0)
+exit(0)
+
+
 # First start xserver on Windows (WSL settings)
 # ./vcxsrv.exe :0 -multiwindow -clipboard -wgl -ac
 
@@ -80,7 +98,9 @@ pprint.pprint(list(set(a_5)))
 a_2 = [[[43, 120, 227], [66, 245, 78], [66, 245, 78]], [[43, 120, 227], [245, 84, 66], [43, 120, 227]], [[43, 120, 227], [43, 120, 227], [43, 120, 227]]]
 
 # use the created array to output your multiple images. In this case I have stacked 4 images vertically
-ax[0].imshow(list(set(a_1)))
+dd = set(a_1)
+pprint.pprint(tuple(dd))
+ax[0].imshow(tuple(dd))
 ax[1].imshow(a_2)
 
 # t = np.arange(0.0, 2.0, 0.01)
@@ -88,7 +108,7 @@ ax[1].imshow(a_2)
 # plt.plot(t, s)
 
 # plt.title('About as simple as it gets, folks')
-#plt.show()
+plt.show()
 
 exit(0)
 
