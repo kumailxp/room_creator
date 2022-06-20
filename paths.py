@@ -43,10 +43,6 @@ class Coordinate:
                 self.node_map[x + (cols * y)] = (x,y)
                 i += 1
 
-    class BlockTypes:
-        outside_map = (-1,-1)
-        inside_map = 1
-
     def get_rgb_array(self):
         rgb_array = self.coordinate_map
         color = RGB.White
@@ -195,13 +191,6 @@ class Coordinate:
         return r
 
 
-def print_layouts(layout):
-    cols = int(math.ceil(len(layout)/3))
-    rows = 3
-    print(len(layout))
-    for room in layout:
-        print(room)
-
 def get_inner_paths(path_list):
     r = []
     for i in range(1, len(path_list)-1):
@@ -215,16 +204,12 @@ def create_other_area(all_nodes, room_map, area_for_room_a):
         area_for_room_b.remove(room_map.core_block_node)
     return area_for_room_b
 
-cached_room_a = []
+
 def create_inner_rooms(all_nodes, room_map, core_connected_blocks, area_for_room_a, source_node):
     room_map_graph: networkx.Graph = room_map.convert_to_graph()
     inner_paths = get_inner_paths(area_for_room_a)
     all_inner_rooms = []
     for p in inner_paths:
-
-        # if p in cached_room_a:
-        #     break
-        # cached_room_a.append(p)
         area_of_inner_room = create_other_area(all_nodes, room_map, p)
         if do_blocks_meet_criteria(room_map_graph, area_of_inner_room, core_connected_blocks):
             room_plan = create_room(all_nodes, room_map, p, area_of_inner_room, source_node)
@@ -252,6 +237,7 @@ def create_room(all_nodes, room_map, area_for_room_a, area_for_room_b, source_no
         new_room.set_value(sx, sy, BlockType.Yellow)
 
     return new_room
+
 
 def do_blocks_meet_criteria(room_map_graph, area_for_room_b, core_connected_blocks):
     room_b_graph: networkx.Graph =room_map_graph.subgraph(area_for_room_b)
@@ -283,7 +269,6 @@ def get_room_plan(all_nodes, core_connected_blocks, room_map, area_for_room_a, s
 
 
 def get_subplot_layout(all_rgb_arrays):
-
     array_len = len(all_rgb_arrays)
     rows = int(math.sqrt(array_len))
     extra_col = 0 if array_len%rows  == 0 else 1
@@ -291,28 +276,54 @@ def get_subplot_layout(all_rgb_arrays):
     return rows, cols
 
 
-def plot_on_graph(room_map, all_rgb_arrays):
+def onclick(event):
+    print('%s click: button=%d, x=%d, y=%d, xdata=%f, ydata=%f' %
+          ('double' if event.dblclick else 'single', event.button,
+           event.x, event.y, event.xdata, event.ydata))
+
+def enter_figure(event):
+    print('enter_figure', event.canvas.figure)
+    event.canvas.figure.patch.set_facecolor('red')
+    event.canvas.draw()
+
+
+def onpick(event):
+    thisline = event.artist
+    print(thisline)
+    for i in thisline:
+        print(i)
+    #xdata = thisline.get_xdata()
+    #ydata = thisline.get_ydata()
+    #ind = event.ind
+    #points = tuple(zip(xdata[ind], ydata[ind]))
+    print('onpick points:')
+
+
+def plot_on_graph(room_map: Coordinate, source_node, all_rgb_arrays):
     print("subplot layout:", get_subplot_layout(all_rgb_arrays))
     print("num layouts", len(all_rgb_arrays))
     subplot_row, subplot_col = get_subplot_layout(all_rgb_arrays)
-    _, ax = plt.subplots(subplot_col, subplot_row)
+    fig, ax = plt.subplots(subplot_col, subplot_row, picker=True)
+    #fig.canvas.mpl_connect('button_press_event', onclick)
+    #fig.canvas.mpl_connect('figure_enter_event', enter_figure)
+    #fig.canvas.mpl_connect('pick_event', onpick)
+    fig.suptitle(f"Rooms for plotting from source node: {source_node}, core block: {room_map.core_block}")
+
     id = 0
     rgb_array_len = len(all_rgb_arrays)
     for c in range(0, subplot_col):
         for r in range(0, subplot_row):
             if id > rgb_array_len -1:
                 ax[c][r].imshow(room_map.get_empty_rgb())
-                ax[c][r].set_axis_off()
             else:
                 ax[c][r].imshow(all_rgb_arrays[id])
-                ax[c][r].set_axis_off()
+            ax[c][r].set_axis_off()
             id += 1
-
     plt.axis('off')
 
 
 def get_paths_from_source(source_node, room_map, room_graph, all_nodes, core_connected_blocks, return_as_rgb = True):
-    cutoff = (int(room_map.cols*room_map.rows)/2) + 1
+    cutoff = int(math.ceil((room_map.cols*room_map.rows)/2))
     result = []
     for path in networkx.all_simple_paths(room_graph, source=source_node, target=room_map.core_block_node, cutoff=cutoff):
         current_room_plan: List[Coordinate] = get_room_plan(all_nodes, core_connected_blocks, room_map, path, -1)
@@ -327,20 +338,20 @@ def get_paths_from_source(source_node, room_map, room_graph, all_nodes, core_con
                             result.append(cp)
     return result
 
+
 def main():
-    room_map = Coordinate(5,5, (2,2))
+    room_map = Coordinate(3,3, (2,2))
     room_graph: networkx.Graph = room_map.convert_to_graph()
-#    all_nodes = room_graph.nodes()
+    all_nodes = room_graph.nodes()
     core_connected_blocks = room_graph[room_map.core_block_node]
     print("core_connected_blocks", list(core_connected_blocks.keys()))
     print(room_map.node_map)
 
-    for source_node in [4]:
-        #cached_room_a.clear()
-        all_nodes = room_graph.nodes()
-        #source_node = 0
-        all_rgb_arrays = get_paths_from_source(source_node, room_map, room_graph, all_nodes, core_connected_blocks)
-        plot_on_graph(room_map, all_rgb_arrays)
+    all_rgb_arrays = []
+    for source_node in [7,5]:
+        rgb_array = get_paths_from_source(source_node, room_map, room_graph, all_nodes, core_connected_blocks)
+        plot_on_graph(room_map, source_node, rgb_array)
+        all_rgb_arrays.append(rgb_array)
 
     plt.show()
 

@@ -6,9 +6,45 @@
 # First start xserver on Windows (WSL settings)
 # ./vcxsrv.exe :0 -multiwindow -clipboard -wgl -ac
 
+
+# import numpy as np
+# import matplotlib.pyplot as plt
+
+# X = np.random.rand(100, 1000)
+# xs = np.mean(X, axis=1)
+# ys = np.std(X, axis=1)
+
+# fig, ax = plt.subplots()
+# ax.set_title('click on point to plot time series')
+# line, = ax.plot(xs, ys, 'o', picker=True, pickradius=5)  # 5 points tolerance
+
+
+# def onpick(event):
+#     if event.artist != line:
+#         return
+#     n = len(event.ind)
+#     if not n:
+#         return
+#     fig, axs = plt.subplots(n, squeeze=False)
+#     for dataind, ax in zip(event.ind, axs.flat):
+#         ax.plot(X[dataind])
+#         ax.text(0.05, 0.9,
+#                 f"$\\mu$={xs[dataind]:1.3f}\n$\\sigma$={ys[dataind]:1.3f}",
+#                 transform=ax.transAxes, verticalalignment='top')
+#         ax.set_ylim(-0.5, 1.5)
+#     fig.show()
+#     return True
+
+
+# fig.canvas.mpl_connect('pick_event', onpick)
+# plt.show()
+
+# exit(1)
+
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import pprint
 
 matplotlib.use('TkAgg')
 
@@ -17,14 +53,34 @@ matplotlib.use('TkAgg')
 f, ax = plt.subplots(2,1)
 
 a_1 = [
-        [[43, 120, 227], [66, 245, 78], [66, 245, 78]],
-        [[43, 120, 227], [245, 84, 66], [66, 245, 78]],
-        [[43, 120, 227], [66, 245, 78], [66, 245, 78]]
+        ((43, 120, 227), (66, 245, 78), (66, 245, 78)),
+        ((43, 120, 227), (245, 84, 66), (66, 245, 78)),
+        ((43, 120, 227), (66, 245, 78), (66, 245, 78)),
+        ((43, 120, 227), (245, 84, 66), (66, 245, 78)),
       ]
+
+
+a_3 = [
+        ((4, 2, 1), (4, 4, 4), (4, 4, 4)),
+        ((4, 4, 1), (4, 4, 2), (4, 4, 4)),
+        ((4, 2, 1), (4, 4, 4), (4, 4, 4))
+      ]
+
+
+a_4 = [
+        ((4, 2, 1), (4, 4, 4), (4, 4, 4)),
+        ((4, 4, 1), (4, 4, 2), (4, 4, 4)),
+        ((4, 2, 1), (4, 4, 4), (4, 4, 5))
+      ]
+
+a_5 = a_3 + a_4
+
+pprint.pprint(a_5)
+pprint.pprint(list(set(a_5)))
 a_2 = [[[43, 120, 227], [66, 245, 78], [66, 245, 78]], [[43, 120, 227], [245, 84, 66], [43, 120, 227]], [[43, 120, 227], [43, 120, 227], [43, 120, 227]]]
 
 # use the created array to output your multiple images. In this case I have stacked 4 images vertically
-ax[0].imshow(a_1)
+ax[0].imshow(list(set(a_1)))
 ax[1].imshow(a_2)
 
 # t = np.arange(0.0, 2.0, 0.01)
@@ -32,7 +88,7 @@ ax[1].imshow(a_2)
 # plt.plot(t, s)
 
 # plt.title('About as simple as it gets, folks')
-plt.show()
+#plt.show()
 
 exit(0)
 
