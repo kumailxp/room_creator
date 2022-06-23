@@ -3,7 +3,7 @@ from typing import List
 import networkx
 import math
 from collections import OrderedDict
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 
 from GraphPlotterFromTuple import *
 from Coordinate import *
@@ -22,13 +22,25 @@ def create_other_area(all_nodes, room_map, area_for_room_a):
     return area_for_room_b
 
 
-def create_inner_rooms(all_nodes, room_map, core_connected_blocks, area_for_room_a, source_node):
+def room_has_outer_node(room_map, outer_nodes):
+    found_outer_node = False
+    for node_a in room_map:
+        if node_a in outer_nodes:
+            found_outer_node = True
+            break
+
+    return found_outer_node
+
+def create_inner_rooms(all_nodes, room_map, core_connected_blocks, area_for_room_a, source_node, outer_edges):
     room_map_graph: networkx.Graph = room_map.convert_to_graph()
     inner_paths = get_inner_paths(area_for_room_a)
     all_inner_rooms = []
     for p in inner_paths:
+        if not room_has_outer_node(p, outer_edges):
+            continue
+
         area_of_inner_room = create_other_area(all_nodes, room_map, p)
-        if do_blocks_meet_criteria(room_map_graph, area_of_inner_room, core_connected_blocks):
+        if do_blocks_meet_criteria(room_map_graph, area_of_inner_room, core_connected_blocks, outer_edges):
             room_plan = create_room(all_nodes, room_map, p, area_of_inner_room, source_node)
             all_inner_rooms.append(room_plan)
     return all_inner_rooms
@@ -55,7 +67,7 @@ def create_room(all_nodes, room_map, area_for_room_a, area_for_room_b, source_no
     return new_room
 
 
-def do_blocks_meet_criteria(room_map_graph, area_for_room_b, core_connected_blocks):
+def do_blocks_meet_criteria(room_map_graph, area_for_room_b, core_connected_blocks, outer_edges):
     room_b_graph: networkx.Graph =room_map_graph.subgraph(area_for_room_b)
 
     r = set(area_for_room_b).intersection(set(core_connected_blocks.keys()))
@@ -65,30 +77,38 @@ def do_blocks_meet_criteria(room_map_graph, area_for_room_b, core_connected_bloc
     if not networkx.is_connected(room_b_graph):
         return False
 
+    if not room_has_outer_node(room_b_graph, outer_edges):
+        return False
+
     return True
 
 
-def get_room_plan(all_nodes, core_connected_blocks, room_map, area_for_room_a, source_node):
+def get_room_plan(all_nodes, core_connected_blocks, room_map, area_for_room_a, source_node, outer_edges):
+
+    if not room_has_outer_node(area_for_room_a, outer_edges):
+        return []
+
     room_map_graph: networkx.Graph = room_map.convert_to_graph()
     area_for_room_b = create_other_area(all_nodes, room_map, area_for_room_a)
 
     all_rooms = []
-    if do_blocks_meet_criteria(room_map_graph, area_for_room_b, core_connected_blocks):
+
+    if do_blocks_meet_criteria(room_map_graph, area_for_room_b, core_connected_blocks, outer_edges):
         room_plan = create_room(all_nodes, room_map, area_for_room_a, area_for_room_b, source_node)
         all_rooms.append(room_plan)
 
-    inner_rooms = create_inner_rooms(all_nodes, room_map, core_connected_blocks, area_for_room_a, source_node)
-    for r in inner_rooms:
-        all_rooms.append(r)
+    # inner_rooms = create_inner_rooms(all_nodes, room_map, core_connected_blocks, area_for_room_a, source_node, outer_edges)
+    # for r in inner_rooms:
+    #     all_rooms.append(r)
 
     return all_rooms
 
 
-def get_paths_from_source(source_node, room_map, room_graph, all_nodes, core_connected_blocks):
+def get_paths_from_source(source_node, room_map, room_graph, all_nodes, core_connected_blocks, outer_edges):
     cutoff = int(math.ceil((room_map.cols*room_map.rows)/2))
     result = []
     for path in networkx.all_simple_paths(room_graph, source=source_node, target=room_map.core_block_node, cutoff=cutoff):
-        current_room_plan: List[Coordinate] = get_room_plan(all_nodes, core_connected_blocks, room_map, path, -1)
+        current_room_plan: List[Coordinate] = get_room_plan(all_nodes, core_connected_blocks, room_map, path, -1, outer_edges)
         if len(current_room_plan) != 0:
                 for cp in current_room_plan:
                     if not cp in result:
@@ -96,8 +116,18 @@ def get_paths_from_source(source_node, room_map, room_graph, all_nodes, core_con
     return result
 
 
+def get_list_of_outer_edges(source_nodes, room_graph):
+    outer_edges = []
+    for s in source_nodes:
+        edges = room_graph[s]
+        if len(edges) < 4:
+            outer_edges.append(s)
+
+    return outer_edges
+
+
 def main():
-    room_map = Coordinate(5,5, (1,1))
+    room_map = Coordinate(5,5, (1,2))
     room_graph: networkx.Graph = room_map.convert_to_graph()
     all_nodes = room_graph.nodes()
     core_connected_blocks = room_graph[room_map.core_block_node]
@@ -106,15 +136,20 @@ def main():
 
     all_room_layouts = {}
     source_nodes = list(all_nodes.keys())
-    for b in core_connected_blocks:
-        source_nodes.remove(b)
+
     source_nodes.remove(room_map.core_block_node)
+
+    outer_edges = get_list_of_outer_edges(source_nodes, room_graph)
+
+    # for b in core_connected_blocks:
+    #     source_nodes.remove(b)
+
     print("s:", source_nodes)
     num_threads = len(source_nodes)
 
-    with ThreadPoolExecutor(max_workers=num_threads) as executor:
+    with ThreadPoolExecutor(max_workers=8) as executor:
         for source_node in source_nodes:
-            future = executor.submit(get_paths_from_source, source_node, room_map, room_graph, all_nodes, core_connected_blocks)
+            future = executor.submit(get_paths_from_source, source_node, room_map, room_graph, all_nodes, core_connected_blocks, outer_edges)
             all_room_layouts[source_node] = future
 
         for source_node, future in all_room_layouts.items():
