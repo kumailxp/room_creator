@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from GraphPlotterFromTuple import *
 from Coordinate import *
+import pprint
 
 def get_inner_paths(path_list):
     r = []
@@ -105,7 +106,7 @@ def get_room_plan(all_nodes, core_connected_blocks, room_map, area_for_room_a, s
 
 
 def get_paths_from_source(source_node, room_map, room_graph, all_nodes, core_connected_blocks, outer_edges):
-    cutoff = int(math.ceil((room_map.cols*room_map.rows)/2))
+    cutoff = int(math.ceil((room_map.cols*room_map.rows)/2)) + abs(room_map.cols - room_map.rows)
     result = []
     for path in networkx.all_simple_paths(room_graph, source=source_node, target=room_map.core_block_node, cutoff=cutoff):
         current_room_plan: List[Coordinate] = get_room_plan(all_nodes, core_connected_blocks, room_map, path, -1, outer_edges)
@@ -127,7 +128,7 @@ def get_list_of_outer_edges(source_nodes, room_graph):
 
 
 def main():
-    room_map = Coordinate(5,5, (1,2))
+    room_map = Coordinate(5,3, (1,2))
     room_graph: networkx.Graph = room_map.convert_to_graph()
     all_nodes = room_graph.nodes()
     core_connected_blocks = room_graph[room_map.core_block_node]
@@ -161,7 +162,7 @@ def main():
     for _, rooms in all_room_layouts.items():
         for room in rooms:
             room:Coordinate
-            result.append(room.get_data_as_tuple(room.rows, room.get_coordinate_map_as_tuple()))
+            result.append(room.get_data_as_tuple(room.cols, room.get_coordinate_map_as_tuple()))
 
     result_without_dups = list(OrderedDict.fromkeys(result))
     print(f"Unique number of layouts: {len(result_without_dups)}")

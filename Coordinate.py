@@ -1,5 +1,8 @@
 from Utils import *
+from colored import fg, bg, attr
 import networkx
+import pprint
+
 
 class Coordinate:
 
@@ -7,15 +10,15 @@ class Coordinate:
         self.coordinate_map = [ [BlockType.Empty] * rows for _ in range(0, cols)]
         cb_x, cb_y = core_block
         self.core_block = core_block
-        self.core_block_node = cb_x + (cols * cb_y)
+        self.core_block_node = cb_x + (rows * cb_y)
         self.rows = rows
         self.cols = cols
         self.node_map = {}
-        i = 0
-        for x in range(0, rows):
-            for y in range(0, cols):
-                self.node_map[x + (cols * y)] = (x,y)
-                i += 1
+
+        for y in range(0, cols):
+            for x in range(0, rows):
+                self.node_map[x + (rows * y)] = (x,y)
+
 
     def __eq__(self, __o):
         return self.coordinate_map == __o.coordinate_map
@@ -118,8 +121,8 @@ class Coordinate:
                     return True
             return False
 
-        for x in range(0,self.get_num_rows()):
-            for y in range(0, self.get_num_cols()):
+        for y in range(0,self.get_num_cols()):
+            for x in range(0, self.get_num_rows()):
                 if self.is_left_block(x):
                     p_to = (x-1, y)
                     if not is_in_path_list(p_to):
@@ -146,8 +149,8 @@ class Coordinate:
         for p_from, p_to in paths:
             p_fx, p_fy = p_from
             p_tx, p_ty = p_to
-            node_from = p_fx + (p_fy * self.get_num_cols())
-            node_to = p_tx + (p_ty * self.get_num_cols())
+            node_from = p_fx + (p_fy * self.get_num_rows())
+            node_to = p_tx + (p_ty * self.get_num_rows())
             path_as_nodes.append( (node_from, node_to))
         return path_as_nodes
 
