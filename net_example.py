@@ -2,6 +2,27 @@
 
 #import networkx
 
+def f(*kwargs):
+    for i in kwargs:
+        for j,v in i.items():
+            print(j,v)
+
+f({ 'a' : [1,3,4], 'b' : [1,3,5] }, {6:'f', 7 : 't'})
+exit(0)
+
+class A:
+    def __init__(self) -> None:
+        self.a = [1,2,3,4]
+
+    def __iter__(self):
+        return iter(self.a)
+
+
+aa = A()
+for i in aa:
+    print(i)
+
+exit(0)
 
 
 class T:
