@@ -29,8 +29,8 @@ def room_has_outer_node(room_map, outer_nodes):
         if node_a in outer_nodes:
             found_outer_node = True
             break
-
     return found_outer_node
+
 
 def create_inner_rooms(all_nodes, room_map, core_connected_blocks, area_for_room_a, source_node, outer_edges):
     room_map_graph: networkx.Graph = room_map.convert_to_graph()
@@ -71,9 +71,9 @@ def create_room(all_nodes, room_map, area_for_room_a, area_for_room_b, source_no
 def do_blocks_meet_criteria(room_map_graph, area_for_room_b, core_connected_blocks, outer_edges):
     room_b_graph: networkx.Graph =room_map_graph.subgraph(area_for_room_b)
 
-    r = set(area_for_room_b).intersection(set(core_connected_blocks.keys()))
-    if len(r) == 0:
-        return False
+    # r = set(area_for_room_b).intersection(core_connected_blocks.keys())
+    # if len(r) == 0:
+    #     return False
 
     if not networkx.is_connected(room_b_graph):
         return False
@@ -87,6 +87,10 @@ def do_blocks_meet_criteria(room_map_graph, area_for_room_b, core_connected_bloc
 def get_room_plan(all_nodes, core_connected_blocks, room_map, area_for_room_a, source_node, outer_edges):
 
     if not room_has_outer_node(area_for_room_a, outer_edges):
+        return []
+
+    r = set(area_for_room_a).intersection(core_connected_blocks.keys())
+    if r == set(core_connected_blocks.keys()):
         return []
 
     room_map_graph: networkx.Graph = room_map.convert_to_graph()
@@ -110,10 +114,9 @@ def get_paths_from_source(source_node, room_map, room_graph, all_nodes, core_con
     result = []
     for path in networkx.all_simple_paths(room_graph, source=source_node, target=room_map.core_block_node, cutoff=cutoff):
         current_room_plan: List[Coordinate] = get_room_plan(all_nodes, core_connected_blocks, room_map, path, -1, outer_edges)
-        if len(current_room_plan) != 0:
-                for cp in current_room_plan:
-                    if not cp in result:
-                        result.append(cp)
+        for cp in current_room_plan:
+            if not cp in result:
+                result.append(cp)
     return result
 
 
@@ -128,7 +131,7 @@ def get_list_of_outer_edges(source_nodes, room_graph):
 
 
 def main():
-    room_map = Coordinate(5,3, (1,2))
+    room_map = Coordinate(5,5, (1,2))
     room_graph: networkx.Graph = room_map.convert_to_graph()
     all_nodes = room_graph.nodes()
     core_connected_blocks = room_graph[room_map.core_block_node]
