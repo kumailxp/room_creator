@@ -35,8 +35,10 @@ class RoomMaker:
             return False
         return True
 
-    def get_room_plan(self, area_for_room_a):
+    def get_room_plan(self, area_for_room_a) -> List[Room]:
 
+        #roomA : Room = RoomFactory.create_room_from_area(BlockType.Green, area_for_room_a)
+        
         if not self.area_has_outer_node(area_for_room_a):
             return []
 
@@ -49,15 +51,16 @@ class RoomMaker:
         all_rooms = []
 
         if self.do_blocks_meet_criteria(area_for_room_b):
-            room_plan = self.create_room(area_for_room_a, area_for_room_b)
+            room_plan = self.create_room({BlockType.Green: area_for_room_a,
+                                                 BlockType.Blue: area_for_room_b})
             all_rooms.append(room_plan)
 
         return all_rooms
 
-    def create_room(self, custom_area_1, custom_area_2):
+    def create_room(self, room_areas):
         new_room: Room = self.room.create_empty_room()
-        new_room.fill_in_room({BlockType.Green: custom_area_1},
-                              {BlockType.Blue: custom_area_2})
+        for color, room_area in room_areas.items():
+            new_room.fill_in_room({color: room_area})
         return new_room
 
     def get_paths_from_source(self, source_node):

@@ -9,9 +9,9 @@ matplotlib.use('TkAgg')
 
 class GraphPlotter:
 
-    def __init__(self, room_layout, room_map: Room, source_node):
+    def __init__(self, room_layout, room: Room, source_node):
         self.room_rgb_layout = [self.get_rgb_array(b) for b in room_layout]
-        self.room_map = room_map
+        self.room = room
         self.source_node = source_node
 
     def plot(self):
@@ -19,7 +19,7 @@ class GraphPlotter:
         subplot_row, subplot_col = sub_layout
         fig, ax = plt.subplots(subplot_col, subplot_row, picker=True)
         fig.suptitle(
-            f"Rooms for plotting from source node: {self.source_node}, core block: {self.room_map.core_block}")
+            f"Rooms for plotting from source node: {self.source_node}, core block: {self.room.core_block_coordinate}")
 
         id = 0
 
@@ -45,15 +45,15 @@ class GraphPlotter:
         return rows, cols
 
     def get_rgb_array(self, single_room_layout: Room):
-        rgb_array = single_room_layout.coordinate_map
-        for _, coordinate in single_room_layout.node_map.items():
+        rgb_array = single_room_layout.room_matrix.coordinate_map
+        for _, coordinate in single_room_layout.room_nodes.get().items():
             x, y = coordinate
-            rgb_array[x][y] = converter_dictionary[single_room_layout.coordinate_map[x][y]]
+            rgb_array[x][y] = converter_dictionary[rgb_array[x][y]]
         return rgb_array
 
     def get_empty_rgb(self):
-        rgb_array = self.room_map.coordinate_map
-        for _, coordinate in self.room_map.node_map.items():
+        rgb_array = self.room.room_matrix.coordinate_map
+        for _, coordinate in self.room.room_nodes.get().items():
             x, y = coordinate
             rgb_array[x][y] = RGB.White
         return rgb_array

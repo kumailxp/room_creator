@@ -2,6 +2,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from RoomMaker import *
 from GraphPlotterFromTuple import *
+from GraphPlotter import *
 from Rooms.Room import *
 from LayoutCreator import *
 
@@ -22,6 +23,11 @@ def main():
             all_room_layouts[source_node] = r
             print(f"layout for {source_node}: {len(r)}")
 
+    # for source_node in source_nodes:
+    #     GraphPlotter(all_room_layouts[source_node], room, source_node).plot()
+    # plt.show()
+
+    # exit(0)
     unique_layouts = LayoutCreator(all_room_layouts).get()
     print(f"Unique number of layouts: {len(unique_layouts)}")
 
@@ -29,9 +35,6 @@ def main():
     G.plot()
     G.show()
 
-    # for source_node in source_nodes:
-    #     GraphPlotter(all_room_layouts[source_node], room_map, source_node).plot()
-    # plt.show()
 
 
 if __name__ == "__main__":

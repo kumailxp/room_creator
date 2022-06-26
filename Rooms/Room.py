@@ -15,8 +15,9 @@ class Room:
         self.rows: int = width
         self.cols: int = height
 
-    def __str__(self) -> str:
-        return self.room_matrix
+    def __str__(self) -> str: return self.room_matrix
+
+    def get_size(self) : return self.rows, self.cols
 
     def get_graph(self) -> networkx.Graph:
         return self.room_graph.get()
@@ -58,3 +59,17 @@ class Room:
 
         x, y = self.core_block_coordinate
         self.room_matrix.set_value(x, y, BlockType.Core)
+
+class RoomFactory:
+
+    @staticmethod
+    def create_room_from_area(room : Room, color, room_area) -> Room :
+        new_room: Room = room.create_empty_room()
+        new_room.fill_in_room({color: room_area})
+        return new_room
+
+    def create_room_from_areas(room : Room, room_areas) -> Room :
+        new_room: Room = room.create_empty_room()
+        for color, room_area in room_areas.items():
+            new_room.fill_in_room({color: room_area})
+        return new_room
